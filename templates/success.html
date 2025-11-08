@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Jobs created</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+      :root { --bg:#0b1220; --panel:#111827; --text:#e6edf3; --muted:#9ca3af; --stroke:#1f2937; --brand:#2563eb; }
+      body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif}
+      .wrap{max-width:900px;margin:6rem auto;padding:2rem;background:var(--panel);border-radius:1.25rem;box-shadow:0 20px 50px rgba(0,0,0,.35)}
+      h1{margin:0 0 .5rem;font-size:2rem}
+      p.lead{margin:.25rem 0 1.25rem;color:var(--muted)}
+      table{width:100%;border-collapse:collapse;margin-top:1rem}
+      th,td{padding:.75rem;border-bottom:1px solid var(--stroke);text-align:left}
+      th{color:#b7c3d7;font-weight:600}
+      .mono{font-family:ui-monospace,Menlo,Consolas,monospace}
+      .actions{margin-top:1rem;display:flex;gap:1rem;align-items:center}
+      a.btn{display:inline-block;background:var(--brand);color:#fff;padding:.7rem 1rem;border-radius:.8rem;text-decoration:none;font-weight:600}
+      a.link{color:#7aa2ff;text-decoration:none}
+      .copy{border:1px solid var(--stroke);background:#0b1220;color:var(--text);padding:.35rem .6rem;border-radius:.5rem;cursor:pointer}
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>Jobs created 🎉</h1>
+      <p class="lead">{{ files|length }} job(s) queued for processing:</p>
+
+      <table>
+        <thead>
+          <tr><th>Job ID</th><th>File name</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for f in files %}
+          <tr>
+            <td class="mono">{{ f.job_id }}</td>
+            <td>{{ f.filename }}</td>
+            <td><button class="copy" onclick="navigator.clipboard.writeText('{{ f.job_id }}')">Copy ID</button></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <div class="actions">
+        <a class="btn" href="{{ url_for('jobs_page') }}">Go to Task Dashboard</a>
+        <a class="link" href="{{ url_for('index') }}">Upload more</a>
+      </div>
+    </div>
+  </body>
+</html>

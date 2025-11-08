@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Task Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+      :root { --bg:#0b1220; --panel:#111827; --text:#e6edf3; --muted:#9ca3af; --stroke:#1f2937; --brand:#2563eb; --ok:#059669; --bad:#b91c1c; }
+      *{box-sizing:border-box}
+      body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif}
+      .wrap{max-width:1200px;margin:3rem auto;padding:2rem;background:var(--panel);border-radius:1.25rem;box-shadow:0 20px 50px rgba(0,0,0,.35)}
+      h1{margin:0 0 .5rem;font-size:2rem}
+      .toolbar{display:flex;justify-content:space-between;align-items:center;gap:1rem}
+      .muted{color:var(--muted)}
+      table{width:100%;border-collapse:collapse;margin-top:1rem}
+      th,td{padding:.75rem;border-bottom:1px solid var(--stroke);text-align:left;vertical-align:middle}
+      th{color:#b7c3d7;font-weight:600}
+      .mono{font-family:ui-monospace,Menlo,Consolas,monospace}
+      .pill{display:inline-block;padding:.25rem .6rem;border-radius:999px;font-weight:700;font-size:.85rem;background:#374151}
+      .SUCCESS{background:var(--ok)}
+      .FAILED{background:var(--bad)}
+      .file{max-width:360px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .copy{border:1px solid var(--stroke);background:#0b1220;color:var(--text);padding:.3rem .55rem;border-radius:.5rem;cursor:pointer;margin-left:.4rem}
+      a{color:#7aa2ff;text-decoration:none}
+      .btn{display:inline-block;background:var(--brand);color:#fff;padding:.6rem .9rem;border-radius:.6rem;text-decoration:none;font-weight:600}
+      .api a{white-space:nowrap}
+    </style>
+    <script>
+      async function refresh(){
+        try{
+          const res = await fetch('/api/jobs');
+          const jobs = await res.json();
+          const tbody = document.querySelector('#rows');
+          tbody.innerHTML='';
+          for(const j of jobs){
+            const tr=document.createElement('tr');
+            tr.innerHTML = `
+              <td class="mono">${j.id}<button class="copy" onclick="navigator.clipboard.writeText('${j.id}')">Copy</button></td>
+              <td class="file" title="${(j.original_file||'').replaceAll('"','&quot;')}">${j.original_file || '—'}</td>
+              <td><span class="pill ${j.status}">${j.status}</span></td>
+              <td class="api"><a href="/api/jobs/${j.id}" target="_blank">status</a>${j.status==='SUCCESS' ? ` • <a href="/api/jobs/${j.id}/result" target="_blank">result</a>` : ''}</td>
+            `;
+            tbody.appendChild(tr);
+          }
+        }catch(e){ console.error(e); }
+      }
+      document.addEventListener('DOMContentLoaded',()=>{ refresh(); setInterval(refresh,2000); });
+    </script>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="toolbar">
+        <h1>Task Dashboard</h1>
+        <div class="muted">Auto-refreshes every 2s</div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Job ID</th>
+            <th>File name</th>
+            <th>Status</th>
+            <th>API</th>
+          </tr>
+        </thead>
+        <tbody id="rows">
+          {% for j in jobs %}
+          <tr>
+            <td class="mono">{{ j.id }} <button class="copy" onclick="navigator.clipboard.writeText('{{ j.id }}')">Copy</button></td>
+            <td class="file" title="{{ j.original_file or '' }}">{{ j.original_file or '—' }}</td>
+            <td><span class="pill {{ j.status }}">{{ j.status }}</span></td>
+            <td class="api"><a href="/api/jobs/{{ j.id }}" target="_blank">status</a>{% if j.status == 'SUCCESS' %} • <a href="/api/jobs/{{ j.id }}/result" target="_blank">result</a>{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <div style="margin-top:1rem"><a class="btn" href="/">Upload more PDFs</a></div>
+    </div>
+  </body>
+</html>
