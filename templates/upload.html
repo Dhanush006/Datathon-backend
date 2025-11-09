@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Upload PDFs</title>
+    <title>Upload PDFs / Docs</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <style>
@@ -26,8 +26,8 @@
   </head>
   <body>
     <div class="wrap">
-      <h1>Upload PDFs</h1>
-      <p class="lead">Select one or more PDFs. Total size must be <strong>≤ 10&nbsp;MB × file count</strong>. Jobs run in the background.</p>
+      <h1>Upload PDFs / Word docs</h1>
+      <p class="lead">Select one or more files. Allowed: <strong>.pdf, .doc, .docx</strong>. Total size must be <strong>≤ 10&nbsp;MB × file count</strong>. DOC/DOCX will be converted to PDF automatically.</p>
 
       {% with messages = get_flashed_messages() %}
         {% if messages %}
@@ -40,10 +40,10 @@
       {% endwith %}
 
       <form action="{{ url_for('upload_many') }}" method="post" enctype="multipart/form-data">
-        <input class="file" type="file" name="files" accept="application/pdf" multiple required />
+        <input class="file" type="file" name="files" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" multiple required />
         <div class="actions">
           <button type="submit">Create Jobs</button>
-          <span class="tips">Need to check progress? Open the <a href="{{ url_for('jobs_page') }}">Task Dashboard</a>.</span>
+          <span class="tips">Check progress in the <a href="{{ url_for('jobs_page') }}">Task Dashboard</a>.</span>
         </div>
       </form>
 

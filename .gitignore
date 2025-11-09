@@ -1,0 +1,77 @@
+# -------------------------------
+# Python / Flask backend
+# -------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+*.env
+
+# Instance and runtime files
+instance/
+uploads/
+results/
+*.log
+*.pid
+
+# Flask cache & sessions
+.flaskenv
+*.sqlite3
+*.db
+
+# Byte-compiled / temp files
+*.pyc
+*.pyo
+*.pyd
+*.swp
+*.swo
+*.bak
+.DS_Store
+
+# -------------------------------
+# IDEs / Editors
+# -------------------------------
+# PyCharm
+.idea/
+# VSCode
+.vscode/
+
+# -------------------------------
+# Mac OS
+# -------------------------------
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# -------------------------------
+# Reports / Artifacts
+# -------------------------------
+*.pdf
+*.json
+*.zip
+*.tar
+*.tar.gz
+
+# -------------------------------
+# Jupyter / Notebooks
+# -------------------------------
+.ipynb_checkpoints/
+
+# -------------------------------
+# Tests / coverage
+# -------------------------------
+htmlcov/
+.tox/
+.nox/
+.coverage
+coverage.xml
+*.cover
+.cache
+nosetests.xml
+pytest.xml
+.pytest_cache/
