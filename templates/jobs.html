@@ -33,6 +33,9 @@
           {% endif %}
           {% if j.status == 'SUCCESS' %}
             • <a href="/api/jobs/{{ j.id }}/result" target="_blank">JSON</a>
+            {% if j.result and j.result.classified_pdf %}
+              • <a href="/results/{{ j.result.classified_pdf }}" target="_blank">View PDF</a>
+            {% endif %}
           {% endif %}
         </td>
       </tr>
@@ -54,7 +57,7 @@
           <td class="api">
             <a href="/api/jobs/${j.id}" target="_blank">status</a>
             ${(j.status==='SUCCESS' || j.status==='FAILED') ? ` • <button class="rerun" data-id="${j.id}">↻ Rerun</button>` : ''}
-            ${j.status==='SUCCESS' ? ` • <a href="/api/jobs/${j.id}/result" target="_blank">JSON</a>` : ''}
+            ${j.status==='SUCCESS' ? ` • <a href="/api/jobs/${j.id}/result" target="_blank">JSON</a>${j.result?.classified_pdf ? ` • <a href="/results/${j.result.classified_pdf}" target="_blank">View PDF</a>` : ''}` : ''}
           </td>
         </tr>`).join('');
     }
@@ -64,10 +67,7 @@
       const res = await fetch(`/api/jobs/${id}/rerun`, { method: 'POST' });
       const data = await res.json();
       if (!res.ok) alert(data.error || 'Failed to rerun');
-      else {
-        alert(`Rerun started! New job ID: ${data.new_job_id}`);
-        refresh();
-      }
+      else { alert(`Rerun started! New job ID: ${data.new_job_id}`); refresh(); }
     }
 
     document.addEventListener('click', e => {

@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_from_directory
 from werkzeug.utils import secure_filename
 from concurrent.futures import ThreadPoolExecutor
 from uuid import uuid4
@@ -8,6 +8,9 @@ from threading import Lock
 from datetime import datetime
 from PyPDF2 import PdfReader
 import os, io, traceback
+
+# <-- NEW: import your classifier class
+from Inference import ContextualPDFClassifier
 
 load_dotenv()
 
@@ -23,13 +26,21 @@ app.config.update(
 )
 Path(app.config["UPLOAD_FOLDER"]).mkdir(parents=True, exist_ok=True)
 
+# <-- NEW: results folder for annotated PDFs / JSON
+RESULTS_FOLDER = os.path.join(app.instance_path, "results")
+Path(RESULTS_FOLDER).mkdir(parents=True, exist_ok=True)
+
 _jobs = {}
 _lock = Lock()
 _executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
+# <-- NEW: single classifier instance
+_classifier = ContextualPDFClassifier()
+
 
 def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+
 
 def file_size_bytes_and_reset(f):
     stream = f.stream
@@ -48,31 +59,67 @@ def file_size_bytes_and_reset(f):
     f.stream.seek(0)
     return size
 
+
 def _set_job(job_id, **fields):
     with _lock:
         _jobs[job_id].update(fields)
+
 
 def _snapshot_jobs():
     with _lock:
         jobs = list(_jobs.values())
     return sorted(jobs, key=lambda j: j.get("created_at", ""), reverse=True)
 
+
+# ====== REPLACED: preprocess now uses ContextualPDFClassifier ======
+
 def _preprocess_pdf(job_id, filepath):
+    """Run contextual classification on the given PDF and store outputs.
+    Resulting PDF will keep the same base filename and be stored under RESULTS_FOLDER.
+    """
     _set_job(job_id, status="RUNNING", started_at=datetime.utcnow().isoformat() + "Z")
     try:
-        with open(filepath, "rb") as f:
-            reader = PdfReader(f)
-            info = reader.metadata or {}
-            pages = len(reader.pages)
-        meta = {str(k): str(v) for k, v in info.items()} if info else {}
-        result = {"file": os.path.basename(filepath), "pages": pages, "metadata": meta}
-        _set_job(job_id, status="SUCCESS", finished_at=datetime.utcnow().isoformat() + "Z", result=result)
+        # Compute simple PDF stats (pages) for dashboard, independent of classifier
+        pages = None
+        try:
+            with open(filepath, "rb") as f:
+                reader = PdfReader(f)
+                pages = len(reader.pages)
+        except Exception:
+            pages = None
+
+        base_pdf_name = os.path.basename(filepath)  # keep same name
+        result_pdf_path = os.path.join(RESULTS_FOLDER, base_pdf_name)
+        result_json_path = os.path.splitext(result_pdf_path)[0] + ".json"
+
+        # Run the classifier
+        classification = _classifier.classify_pdf_contextually(
+            pdf_path=filepath,
+            output_json=result_json_path,
+            output_pdf=result_pdf_path,
+        )
+
+        final_categories = classification.get("final_classification", {}).get("final_categories", [])
+
+        _set_job(
+            job_id,
+            status="SUCCESS",
+            finished_at=datetime.utcnow().isoformat() + "Z",
+            result={
+                "pages": pages,
+                "classified_pdf": os.path.basename(result_pdf_path),
+                "json_result": os.path.basename(result_json_path),
+                "categories": final_categories,
+            },
+        )
     except Exception:
         _set_job(job_id, status="FAILED", finished_at=datetime.utcnow().isoformat() + "Z", error=traceback.format_exc())
+
 
 @app.get("/")
 def index():
     return render_template("upload.html")
+
 
 @app.post("/upload")
 def upload_many():
@@ -116,14 +163,17 @@ def upload_many():
 
     return render_template("success.html", files=created_jobs)
 
+
 @app.get("/jobs")
 def jobs_page():
     jobs = _snapshot_jobs()
     return render_template("jobs.html", jobs=jobs)
 
+
 @app.get("/api/jobs")
 def api_list_jobs():
     return jsonify(_snapshot_jobs())
+
 
 @app.get("/api/jobs/<job_id>")
 def api_get_job(job_id):
@@ -131,6 +181,7 @@ def api_get_job(job_id):
     if not job:
         return jsonify({"error": "Unknown job_id"}), 404
     return jsonify(job)
+
 
 @app.get("/api/jobs/<job_id>/result")
 def api_get_result(job_id):
@@ -140,6 +191,13 @@ def api_get_result(job_id):
     if job.get("status") != "SUCCESS":
         return jsonify({"error": f"Job not complete (status={job.get('status')})"}), 409
     return jsonify(job["result"])
+
+
+# <-- NEW: serve result PDFs / JSONs
+@app.get("/results/<filename>")
+def serve_result(filename):
+    return send_from_directory(RESULTS_FOLDER, filename)
+
 
 @app.post("/api/jobs/<job_id>/rerun")
 def api_rerun_job(job_id):
@@ -165,6 +223,7 @@ def api_rerun_job(job_id):
 
     _executor.submit(_preprocess_pdf, new_id, src_path)
     return jsonify({"message": "Rerun started", "new_job_id": new_id})
+
 
 if __name__ == "__main__":
     app.run(debug=True, port=PORT)
